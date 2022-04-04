@@ -1,3 +1,5 @@
+from torch.utils.tensorboard import SummaryWriter
+
 # for reference
 layout = { "Training_Metrics": {
         "loss": ["Multiline", ["loss/train", "loss/val"]],
