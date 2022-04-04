@@ -31,7 +31,7 @@ class Trainer:
                 getattr(cb, event, self.noop)(self)
 
     def init_optimizers(self, model):
-        temp = model.configure_optimzers()
+        temp = model.configure_optimizers()
         if isinstance(temp, (tuple, list)):
             if len(temp) == 1:
                 *self.optimizer, = temp
