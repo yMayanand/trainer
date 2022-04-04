@@ -12,7 +12,7 @@ def create_layout(metrics):
     layout = {'training_metrics': temp}
     return 
 
-def get_basic_writer(log_dir='runs/exp', comment='', layout):
+def get_basic_writer(layout, log_dir='runs/exp', comment=''):
     writer = SummaryWriter(log_dir=log_dir, comment=comment)
     writer.add_custom_scalars(layout)
     return writer
