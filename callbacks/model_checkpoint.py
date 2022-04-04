@@ -21,7 +21,8 @@ class ModelCheckpoint:
         fname = f"{trainer.name}_{trainer.global_step}.pt"
         fname = os.path.join(self.dir_path, fname)
         def save():
-            if Path(self.prev_fname).exists():
+            if self.prev_fname:
+                if Path(self.prev_fname).exists():
                     os.remove(self.prev_fname)
             if self.save_only_weights:
                 torch.save(model.state_dict(), fname)
