@@ -22,6 +22,9 @@ def get_basic_writer(layout, log_dir='runs/exp', comment=''):
     writer.add_custom_scalars(layout)
     return writer
 
+class MisConfigurationError(Exception):
+    pass
+
 class AverageMeter:
     def __init__(self):
         self.reset()
