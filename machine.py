@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import GradScaler, autocast
 from tqdm.notebook import tqdm
 
-from .utils import get_basic_writer, create_layout
+from .utils import get_basic_writer, create_layout, MisConfigurationError
 
 
 class Trainer:
@@ -54,8 +54,8 @@ class Trainer:
         elif isinstance(temp, torch.optim.Optimizer):
             self.optimizer = temp
             self.sched_dict = None
-        else:
-            raise ValueError('correct optimizer not provided')
+        if not isinstance(self.optimizer, torch.optim.Optimizer):
+            raise MisConfigurationError('correct optimizer not provided')
 
     def generate_colors(self, num):
         colors = []
@@ -88,14 +88,27 @@ class Trainer:
                         self.sched_dict['scheduler'].step(metric.avg)
             logs = self.print_factory(model)
             print(logs)
+            self.result = self.create_results(model)
             self.reset_metrics(model)
-            self('on_fit_end')
+            self('on_train_epoch_end')
+        self('on_fit_end')
+        return self.result
 
     def reset_metrics(self, model):
         for i in model.log_metric:
             metric = getattr(model, i, None)
             if metric is not None:
                 metric.reset()
+    
+    def create_results(self, model):
+        def get_val(metric):
+            val = getattr(model, metric, None)
+            return val.avg
+        metric_dict = {}
+        for i in model.log_metric:
+            metric_dict.update({i: get_val(i)})
+        return metric_dict
+
 
     def print_factory(self, model):
         def template(metric, val, color):
@@ -103,7 +116,7 @@ class Trainer:
 
         temp = []
         for metric, color in zip(model.log_metric, self.colors):
-            temp.append(template(metric, getattr(model, metric, ''), color))
+            temp.append(template(metric, getattr(model, metric, None), color))
         return ' '.join(temp)
 
     def to_device(self, val, tmp=None):
@@ -118,7 +131,7 @@ class Trainer:
 
     def train_with_amp(self, model, batch, batch_idx):
         if self.device != 'cuda':
-            raise ValueError('cuda device not found')
+            raise MisConfigurationError('cuda device not found')
         with autocast():
             loss = model.training_step(batch, batch_idx)
         self.scaler.scale(loss).backward()
@@ -146,8 +159,8 @@ class Trainer:
                         #self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], self.global_step)
             self('on_train_batch_end')
             self.global_step += 1
-        self('on_train_epoch_end')
-
+        
+    
     def validation_loop(self, model, dl):
         self('on_val_epoch_start')
         for batch_idx, batch in tqdm(enumerate(dl), total=len(dl), leave=False, desc='Validating...'):
