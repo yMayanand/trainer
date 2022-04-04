@@ -14,9 +14,10 @@ class Trainer:
                  name='exp0'):
         
         log_dir = 'runs/'
+        self.name = name
         layout = create_layout(tensorboard_metrics)
         if writer is None:
-            writer = get_basic_writer(layout, log_dir=log_dir+name)
+            writer = get_basic_writer(layout, log_dir=log_dir+self.name)
         self.amp_ = mixed_precision
         self.writer = writer
         self.num_epochs = num_epochs
@@ -39,10 +40,10 @@ class Trainer:
         """this function does nothing just returns input as it is"""
         return x
 
-    def __call__(self, event):
+    def __call__(self, event, model):
         if event in self.available_cbs:
             for cb in self.cbs:
-                getattr(cb, event, self.noop)(self)
+                getattr(cb, event, self.noop)(self, model)
 
     def init_optimizers(self, model):
         temp = model.configure_optimizers()
@@ -67,7 +68,7 @@ class Trainer:
         self.colors = colors
 
     def fit(self, model, train_dl=None, val_dl=None):
-        self('on_fit_start')
+        self('on_fit_start', model)
         if self.device == 'cuda':
             self.scaler = GradScaler()
         model.to(self.device)
@@ -90,8 +91,8 @@ class Trainer:
             print(logs)
             self.result = self.create_results(model)
             self.reset_metrics(model)
-            self('on_train_epoch_end')
-        self('on_fit_end')
+            self('on_train_epoch_end', model)
+        self('on_fit_end', model)
         return self.result
 
     def reset_metrics(self, model):
@@ -139,9 +140,9 @@ class Trainer:
         self.scaler.update()
 
     def train_loop(self, model, dl):
-        self('on_train_epoch_start')
+        self('on_train_epoch_start', model)
         for batch_idx, batch in tqdm(enumerate(dl), total=len(dl), leave=False, desc='Training...'):
-            self('on_train_batch_start')
+            self('on_train_batch_start', model)
             model.global_step = self.global_step
             model.train()
             self.optimizer.zero_grad()
@@ -157,20 +158,20 @@ class Trainer:
                     if self.global_step % self.sched_dict['frequency'] == 0:
                         self.sched_dict['scheduler'].step()
                         #self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], self.global_step)
-            self('on_train_batch_end')
+            self('on_train_batch_end', model)
             self.global_step += 1
         
     
     def validation_loop(self, model, dl):
-        self('on_val_epoch_start')
+        self('on_val_epoch_start', model)
         for batch_idx, batch in tqdm(enumerate(dl), total=len(dl), leave=False, desc='Validating...'):
-            self('on_val_batch_start')
+            self('on_val_batch_start', model)
             model.eval()
             with torch.no_grad():
                 batch = self.to_device(batch)
                 loss = model.validation_step(batch, batch_idx)
-            self('on_val_batch_end')
-        self('on_val_epoch_end')
+            self('on_val_batch_end', model)
+        self('on_val_epoch_end', model)
 
     def predict(self, model, dl):
         return self.predict_loop(model, dl)
