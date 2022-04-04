@@ -27,7 +27,7 @@ class ModelCheckpoint:
                 torch.save(model.state_dict(), fname)
             else:
                 torch.save({'model_state': model.state_dict(),
-                            'opt_state': trainer.optimizer.stat_dict()}, fname)
+                            'opt_state': trainer.optimizer.state_dict()}, fname)
         if self.monitor:
             temp = trainer.result[self.monitor]
             if self.mode == 'max':
