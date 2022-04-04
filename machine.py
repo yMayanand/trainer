@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import GradScaler, autocast
 from tqdm.notebook import tqdm
 
-from utils import get_basic_writer, create_layout
+from .utils import get_basic_writer, create_layout
 
 
 class Trainer:
