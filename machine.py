@@ -11,11 +11,12 @@ class Trainer:
     def __init__(self, num_epochs=1, writer=None,
                  mixed_precision=False, cbs=[],
                  tensorboard_metrics=['loss', 'accuracy'],
-                 log_dir='runs/exp0'):
+                 name='exp0'):
         
+        log_dir = 'runs/'
         layout = create_layout(tensorboard_metrics)
         if writer is None:
-            writer = get_basic_writer(layout, log_dir=log_dir)
+            writer = get_basic_writer(layout, log_dir=log_dir+name)
         self.amp_ = mixed_precision
         self.writer = writer
         self.num_epochs = num_epochs

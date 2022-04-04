@@ -21,3 +21,19 @@ def get_basic_writer(layout, log_dir='runs/exp', comment=''):
     writer = SummaryWriter(log_dir=log_dir, comment=comment)
     writer.add_custom_scalars(layout)
     return writer
+
+class AverageMeter:
+    def __init__(self):
+        self.reset()
+
+    def update(self, val):
+        self.val = val
+        self.sum += val
+        self.count += 1
+        self.avg = self.sum/self.count
+
+    def reset(self):
+        self.val = 0
+        self.sum = 0
+        self.count = 0
+        self.avg = 0
