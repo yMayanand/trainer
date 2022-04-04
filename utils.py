@@ -14,7 +14,7 @@ def create_layout(metrics):
         temp.update(
             {metric: ["Multiline", [f"{metric}/train", f"{metric}/val"]]})
     layout = {'training_metrics': temp}
-    return
+    return layout
 
 
 def get_basic_writer(layout, log_dir='runs/exp', comment=''):
