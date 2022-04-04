@@ -1,13 +1,26 @@
-import torch
 import random
+
+import torch
+from torch.cuda.amp import GradScaler, autocast
 from tqdm.notebook import tqdm
+
+from utils import get_basic_writer, create_layout
+
+
 class Trainer:
-    def __init__(self, num_epochs=1, writer=None, mixed_precision=False, cbs=[]):
-        assert writer != None, "writer is not provided"
+    def __init__(self, num_epochs=1, writer=None,
+                 mixed_precision=False, cbs=[],
+                 tensorboard_metrics=['loss', 'accuracy'],
+                 log_dir='runs/exp0'):
+        
+        layout = create_layout(tensorboard_metrics)
+        if writer is None:
+            writer = get_basic_writer(layout, log_dir=log_dir)
         self.amp_ = mixed_precision
         self.writer = writer
         self.num_epochs = num_epochs
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
         self.global_step = 1
         self.cbs = cbs
         self.available_cbs = ['on_train_epoch_start',
@@ -24,7 +37,7 @@ class Trainer:
     def noop(x=None, *args, **kwargs):
         """this function does nothing just returns input as it is"""
         return x
-    
+
     def __call__(self, event):
         if event in self.available_cbs:
             for cb in self.cbs:
@@ -43,7 +56,6 @@ class Trainer:
         else:
             raise ValueError('correct optimizer not provided')
 
-
     def generate_colors(self, num):
         colors = []
         for i in range(num):
@@ -52,7 +64,6 @@ class Trainer:
             B = random.randint(0, 254)
             colors.append(f'\033[38;2;{R};{G};{B}m')
         self.colors = colors
-
 
     def fit(self, model, train_dl=None, val_dl=None):
         self('on_fit_start')
@@ -78,7 +89,6 @@ class Trainer:
             print(logs)
             self.reset_metrics(model)
             self('on_fit_end')
-        
 
     def reset_metrics(self, model):
         for i in model.log_metric:
@@ -88,14 +98,13 @@ class Trainer:
 
     def print_factory(self, model):
         def template(metric, val, color):
-            return color + '\033[1m' +  f"{metric}:\u001b[30m{val.avg: .4f}"
-        
+            return color + '\033[1m' + f"{metric}:\u001b[30m{val.avg: .4f}"
+
         temp = []
         for metric, color in zip(model.log_metric, self.colors):
             temp.append(template(metric, getattr(model, metric, ''), color))
         return ' '.join(temp)
-        
-        
+
     def to_device(self, val, tmp=None):
         if tmp is None:
             tmp = []
@@ -105,7 +114,7 @@ class Trainer:
         elif isinstance(val, torch.Tensor):
             tmp.append(val.to(self.device))
         return tmp
-    
+
     def train_with_amp(self, model, batch, batch_idx):
         if self.device != 'cuda':
             raise ValueError('cuda device not found')
@@ -114,7 +123,6 @@ class Trainer:
         self.scaler.scale(loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
-
 
     def train_loop(self, model, dl):
         self('on_train_epoch_start')
@@ -132,7 +140,7 @@ class Trainer:
                 self.optimizer.step()
             if self.sched_dict is not None:
                 if self.sched_dict['strategy'] == 'step':
-                    if self.global_step % self.sched_dict['frequency']  == 0:
+                    if self.global_step % self.sched_dict['frequency'] == 0:
                         self.sched_dict['scheduler'].step()
                         #self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], self.global_step)
             self('on_train_batch_end')
@@ -149,7 +157,7 @@ class Trainer:
                 loss = model.validation_step(batch, batch_idx)
             self('on_val_batch_end')
         self('on_val_epoch_end')
-    
+
     def predict(self, model, dl):
         return self.predict_loop(model, dl)
 
