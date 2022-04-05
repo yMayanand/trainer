@@ -120,15 +120,14 @@ class Trainer:
             temp.append(template(metric, getattr(model, metric, None), color))
         return ' '.join(temp)
 
-    def to_device(self, val, tmp=None):
-        if tmp is None:
-            tmp = []
-        if isinstance(val, (list, tuple)):
+    def to_device(self, val):
+        tmp = []
+        if isinstance(val, torch.Tensor):
+            return val.to(self.device)
+        elif isinstance(val, (tuple, list)):
             for i in val:
-                self.to_device(i, tmp=tmp)
-        elif isinstance(val, torch.Tensor):
-            tmp.append(val.to(self.device))
-        return tmp
+                tmp.append(self.to_device(i))
+            return tmp
 
     def train_with_amp(self, model, batch, batch_idx):
         if self.device != 'cuda':
