@@ -10,12 +10,14 @@ from .utils import get_basic_writer, create_layout, MisConfigurationError
 class Trainer:
     def __init__(self, num_epochs=1, writer=None,
                  mixed_precision=False, cbs=[],
-                 tensorboard_metrics=['loss', 'accuracy'],
-                 name='exp0'):
+                 track_metrics=['loss', 'accuracy'],
+                 name='exp0',
+                 set_to_none=False):
         
         log_dir = 'runs/'
         self.name = name
-        layout = create_layout(tensorboard_metrics)
+        self.set_to_none = set_to_none
+        layout = create_layout(track_metrics)
         if writer is None:
             writer = get_basic_writer(layout, log_dir=log_dir+self.name)
         self.amp_ = mixed_precision
@@ -144,7 +146,7 @@ class Trainer:
             self('on_train_batch_start', model)
             model.global_step = self.global_step
             model.train()
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=self.set_to_none)
             batch = self.to_device(batch)
             if self.amp_:
                 self.train_with_amp(model, batch, batch_idx)

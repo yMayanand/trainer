@@ -1,2 +1,5 @@
 # do not track jupyter notebooks
 *.ipynb
+
+# do not track python bytecodes *.pyc
+*.pyc
