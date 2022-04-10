@@ -156,7 +156,7 @@ class Trainer:
                 self.optimizer.step()
             if self.sched_dict is not None:
                 if self.sched_dict['strategy'] == 'step':
-                    if batch_idx % self.sched_dict['frequency'] == 0:
+                    if (batch_idx+1) % self.sched_dict['frequency'] == 0:
                         self.sched_dict['scheduler'].step()
                         #self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], self.global_step)
             self('on_train_batch_end', model)
