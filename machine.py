@@ -1,10 +1,12 @@
 import random
+import copy
 
 import torch
 from torch.cuda.amp import GradScaler, autocast
 from tqdm.notebook import tqdm
 
-from .utils import get_basic_writer, create_layout, MisConfigurationError
+from .utils import *
+import matplotlib.pyplot as plt
 
 
 class Trainer:
@@ -13,7 +15,7 @@ class Trainer:
                  track_metrics=['loss', 'accuracy'],
                  name='exp0',
                  set_to_none=False):
-        
+
         log_dir = 'runs/'
         self.name = name
         self.set_to_none = set_to_none
@@ -47,6 +49,38 @@ class Trainer:
             for cb in self.cbs:
                 getattr(cb, event, self.noop)(self, model)
 
+    def lr_finder(self, model, train_dl=None,
+                  min_val=-7, max_val=1,
+                  iters=100, smooth=0.95):
+        lrs = torch.logspace(min_val, max_val)
+        if train_dl is None:
+            raise MisConfigurationError('train_dl not provided')
+
+        it = iter(train_dl)
+        model = copy.deepcopy(model)
+        model.to(self.device)
+        self.init_optimizers(model)
+        losses = []
+        for batch_idx in tqdm(range(iters), leave=False):
+            batch = next(it)
+            self.optimizer.zero_grad()
+            loss = model.training_step(batch, batch_idx)
+            loss.backward()
+            self.optimizer.step()
+            if batch_idx > 0:
+                losses.append(loss.item())
+            if batch_idx == (len(train_dl) - 1):
+                it = iter(train_dl)
+        loss = model.training_step(batch, batch_idx)
+        losses.append(loss.item())
+        plt.title('LR Finder Plots')
+        plt.plot(lrs, losses)
+        plt.xscale('log')
+        #plt.ylim()
+        plt.tight_layout()
+        
+
+
     def init_optimizers(self, model):
         temp = model.configure_optimizers()
         if isinstance(temp, (tuple, list)):
@@ -69,9 +103,11 @@ class Trainer:
             colors.append(f'\033[38;2;{R};{G};{B}m')
         self.colors = colors
 
-    def fit(self, model, train_dl=None, val_dl=None):
+    def fit(self, model, train_dl=None,
+            val_dl=None, seed=42):
+        seed_everything(seed=seed)
         self('on_fit_start', model)
-        if self.device == 'cuda':
+        if self.device == 'cuda' and self.amp_:
             self.scaler = GradScaler()
         model.to(self.device)
         model.writer = self.writer
@@ -102,7 +138,7 @@ class Trainer:
             metric = getattr(model, i, None)
             if metric is not None:
                 metric.reset()
-    
+
     def create_results(self, model):
         def get_val(metric):
             val = getattr(model, metric, None)
@@ -111,7 +147,6 @@ class Trainer:
         for i in model.log_metric:
             metric_dict.update({i: get_val(i)})
         return metric_dict
-
 
     def print_factory(self, model):
         def template(metric, val, color):
@@ -161,8 +196,7 @@ class Trainer:
                         #self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], self.global_step)
             self('on_train_batch_end', model)
             self.global_step += 1
-        
-    
+
     def validation_loop(self, model, dl):
         self('on_val_epoch_start', model)
         for batch_idx, batch in tqdm(enumerate(dl), total=len(dl), leave=False, desc='Validating...'):
