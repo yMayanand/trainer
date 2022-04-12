@@ -63,7 +63,7 @@ class Trainer:
         self.init_optimizers(model)
         losses = []
         for batch_idx in tqdm(range(iters), leave=False):
-            self.optimizer[0]['lr'] = lrs[batch_idx]
+            self.optimizer.param_groups[0]['lr'] = lrs[batch_idx]
             batch = next(it)
             self.optimizer.zero_grad()
             loss = model.training_step(batch, batch_idx)
