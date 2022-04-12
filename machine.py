@@ -52,6 +52,7 @@ class Trainer:
     def lr_finder(self, model, train_dl=None,
                   min_val=-7, max_val=1,
                   iters=100, smooth=0.95):
+        model.global_step = self.global_step
         lrs = torch.logspace(min_val, max_val)
         if train_dl is None:
             raise MisConfigurationError('train_dl not provided')
