@@ -76,11 +76,11 @@ class Trainer:
         loss = model.training_step(batch, batch_idx)
         losses.append(loss.item())
         smoothed_losses = smoother(losses, smooth)
-        plt.title('LR Finder Plots')
-        plt.plot(lrs, smoothed_losses)
-        plt.xscale('log')
-        #plt.ylim()
-        plt.tight_layout()
+        fig, ax = plt.subplots()
+        ax.set_title('LR Finder Plot')
+        ax.plot(lrs, smoothed_losses)
+        ax.set_xscale('log')
+        return fig, ax
         
 
 
