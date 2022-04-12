@@ -1,4 +1,7 @@
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
+import random
+import torch
 
 # for reference
 layout = {"Training_Metrics": {
@@ -25,6 +28,12 @@ def get_basic_writer(layout, log_dir='runs/exp', comment=''):
 class MisConfigurationError(Exception):
     pass
 
+def seed_everything(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
 class AverageMeter:
     def __init__(self):
         self.reset()
@@ -40,3 +49,6 @@ class AverageMeter:
         self.sum = 0
         self.count = 0
         self.avg = 0
+
+
+
