@@ -63,6 +63,7 @@ class Trainer:
         self.init_optimizers(model)
         losses = []
         for batch_idx in tqdm(range(iters), leave=False):
+            self.optimizer[0]['lr'] = lrs[batch_idx]
             batch = next(it)
             self.optimizer.zero_grad()
             loss = model.training_step(batch, batch_idx)
@@ -74,8 +75,9 @@ class Trainer:
                 it = iter(train_dl)
         loss = model.training_step(batch, batch_idx)
         losses.append(loss.item())
+        smoothed_losses = smoother(losses, smooth)
         plt.title('LR Finder Plots')
-        plt.plot(lrs, losses)
+        plt.plot(lrs, smoothed_losses)
         plt.xscale('log')
         #plt.ylim()
         plt.tight_layout()
