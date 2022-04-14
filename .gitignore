@@ -3,3 +3,6 @@
 
 # do not track python bytecodes *.pyc
 *.pyc
+
+*.tsv
+*.pbtxt

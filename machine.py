@@ -1,6 +1,7 @@
 import random
 import copy
 
+
 import torch
 from torch.cuda.amp import GradScaler, autocast
 from tqdm.notebook import tqdm
@@ -65,6 +66,7 @@ class Trainer:
         for batch_idx in tqdm(range(iters), leave=False):
             self.optimizer.param_groups[0]['lr'] = lrs[batch_idx]
             batch = next(it)
+            batch = self.to_device(batch)
             self.optimizer.zero_grad()
             loss = model.training_step(batch, batch_idx)
             loss.backward()
