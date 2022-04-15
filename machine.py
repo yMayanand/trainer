@@ -112,7 +112,7 @@ class Trainer:
             val_dl=None, seed=42):
         seed_everything(seed=seed)
         self('on_fit_start', model)
-        if self.device == 'cuda' and self.amp_:
+        if self.device.type == 'cuda' and self.amp_:
             self.scaler = GradScaler()
         model.to(self.device)
         model.writer = self.writer
@@ -172,7 +172,7 @@ class Trainer:
             return tmp
 
     def train_with_amp(self, model, batch, batch_idx):
-        if self.device != 'cuda':
+        if self.device.type != 'cuda':
             raise MisConfigurationError('cuda device not found')
         with autocast():
             loss = model.training_step(batch, batch_idx)
